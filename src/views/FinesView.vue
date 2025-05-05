@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import Navbar from "@/components/Navbar.vue";
 
 const filters = ref([
@@ -8,20 +8,30 @@ const filters = ref([
 ])
 
 const selectedFilter = ref('az')
+const fines = ref<{ loanId: number; amount: number; reason: string; paymentDate: string }[]>([])
 
-const fines = ref([
-  { loan_id: 1, amount: 50, reason: 'Retraso en devolución', date_payment: '2023-01-22' },
-  { loan_id: 2, amount: 30, reason: 'Retraso en devolución', date_payment: '2023-02-28' },
-  { loan_id: 3, amount: 70, reason: 'Libro dañado', date_payment: '2023-03-15' },
-  { loan_id: 4, amount: 40, reason: 'Retraso en devolución', date_payment: '2023-04-17' }
-])
+const fetchFines = async () => {
+  try {
+    const response = await fetch('http://localhost:8080/api/fines/')
+    if (!response.ok) throw new Error('Failed to fetch fines')
+    const data = await response.json()
+    fines.value = data
+    sortFines()
+  } catch (error) {
+    console.error('Error fetching fines:', error)
+  }
+}
 
 const sortFines = () => {
   if (selectedFilter.value === 'az') {
-    fines.value.sort((a, b) => a.loan_id - b.loan_id)
+    fines.value.sort((a, b) => a.loanId - b.loanId)
   } else if (selectedFilter.value === 'za') {
-    fines.value.sort((a, b) => b.loan_id - a.loan_id)
+    fines.value.sort((a, b) => b.loanId - a.loanId)
   }
+}
+
+const formatDate = (isoString: string): string => {
+  return new Date(isoString).toLocaleDateString('es-ES')
 }
 
 const generatePDF = () => {
@@ -31,6 +41,10 @@ const generatePDF = () => {
 const generateCSV = () => {
   alert("Generando CSV...");
 }
+
+onMounted(() => {
+	fetchFines()
+})
 </script>
 
 <template>
@@ -69,11 +83,11 @@ const generateCSV = () => {
         </tr>
       </thead>
       <tbody>
-        <tr v-for="fine in fines" :key="fine.loan_id">
-          <td>{{ fine.loan_id }}</td>
+        <tr v-for="fine in fines" :key="fine.loanId">
+          <td>{{ fine.loanId }}</td>
           <td>Q {{ fine.amount }}</td>
           <td>{{ fine.reason }}</td>
-          <td>{{ fine.date_payment }}</td>
+          <td>{{ formatDate(fine.paymentDate) }}</td>
         </tr>
       </tbody>
     </table>

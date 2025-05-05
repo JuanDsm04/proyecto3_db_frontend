@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import Navbar from "@/components/Navbar.vue";
 
 const filters = ref([
@@ -8,19 +8,25 @@ const filters = ref([
 ])
 
 const selectedFilter = ref('az')
+const clients = ref<{ names: string; lastNames: string; address: string; phone: string; email: string }[]>([])
 
-const clients = ref([
-  { firstName: 'Juan', lastName: 'Pérez', address: 'Calle Falsa 123', phone: '123456789', email: 'jupe@gmail.com'},
-  { firstName: 'Ana', lastName: 'González', address: 'Calle Real 456', phone: '987654321', email: 'anago@gmail.com' },
-  { firstName: 'Pedro', lastName: 'López', address: 'Avenida Libertad 789', phone: '654321987', email: 'pelo@gmail.com'},
-  { firstName: 'Laura', lastName: 'Martínez', address: 'Calle Sol 321', phone: '321654987', email: 'lama@gmail.com' },
-])
+const fetchClients = async () => {
+  try {
+    const response = await fetch('http://localhost:8080/api/clients/')
+    if (!response.ok) throw new Error('Failed to fetch clients')
+    const data = await response.json()
+    clients.value = data
+    sortClients()
+  } catch (error) {
+    console.error('Error fetching clients:', error)
+  }
+}
 
 const sortClients = () => {
   if (selectedFilter.value === 'az') {
-    clients.value.sort((a, b) => a.firstName.localeCompare(b.firstName))
+    clients.value.sort((a, b) => a.names.localeCompare(b.names))
   } else if (selectedFilter.value === 'za') {
-    clients.value.sort((a, b) => b.firstName.localeCompare(a.firstName))
+    clients.value.sort((a, b) => b.names.localeCompare(a.names))
   }
 }
 
@@ -31,6 +37,10 @@ const generatePDF = () => {
 const generateCSV = () => {
   alert("Generando CSV...");
 }
+
+onMounted(() => {
+	fetchClients()
+})
 </script>
 
 <template>
@@ -70,9 +80,9 @@ const generateCSV = () => {
         </tr>
       </thead>
       <tbody>
-        <tr v-for="client in clients" :key="client.firstName + client.lastName">
-          <td>{{ client.firstName }}</td>
-          <td>{{ client.lastName }}</td>
+        <tr v-for="client in clients" :key="client.names + client.lastNames">
+          <td>{{ client.names }}</td>
+          <td>{{ client.lastNames }}</td>
           <td>{{ client.address }}</td>
           <td>{{ client.phone }}</td>
           <td>{{ client.email }}</td>

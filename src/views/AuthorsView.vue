@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import Navbar from "@/components/Navbar.vue";
+import { ref, onMounted } from 'vue'
+import Navbar from "@/components/Navbar.vue"
 
 const filters = ref([
   { label: 'A-Z', value: 'az' },
@@ -8,13 +8,19 @@ const filters = ref([
 ])
 
 const selectedFilter = ref('az')
+const authors = ref<{ names: string; lastNames: string; nationality: string }[]>([])
 
-const authors = ref([
-  { names: 'Gabriel', last_names: 'García Márquez', nationality: 'Colombiana' },
-  { names: 'Isabel', last_names: 'Allende', nationality: 'Chilena' },
-  { names: 'Jorge Luis', last_names: 'Borges', nationality: 'Argentina' },
-  { names: 'Mario', last_names: 'Vargas Llosa', nationality: 'Peruana' }
-])
+const fetchAuthors = async () => {
+  try {
+    const response = await fetch('http://localhost:8080/api/authors/')
+    if (!response.ok) throw new Error('Failed to fetch authors')
+    const data = await response.json()
+    authors.value = data
+    sortAuthors()
+  } catch (error) {
+    console.error('Error fetching authors:', error)
+  }
+}
 
 const sortAuthors = () => {
   if (selectedFilter.value === 'az') {
@@ -25,13 +31,18 @@ const sortAuthors = () => {
 }
 
 const generatePDF = () => {
-  alert("Generando PDF...");
+  alert("Generando PDF...")
 }
 
 const generateCSV = () => {
-  alert("Generando CSV...");
+  alert("Generando CSV...")
 }
+
+onMounted(() => {
+  fetchAuthors()
+})
 </script>
+
 
 <template>
   <!-- Navbar -->
@@ -68,9 +79,9 @@ const generateCSV = () => {
         </tr>
       </thead>
       <tbody>
-        <tr v-for="author in authors" :key="author.names + author.last_names">
+        <tr v-for="author in authors" :key="author.names + author.lastNames">
           <td>{{ author.names }}</td>
-          <td>{{ author.last_names }}</td>
+          <td>{{ author.lastNames }}</td>
           <td>{{ author.nationality }}</td>
         </tr>
       </tbody>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import Navbar from "@/components/Navbar.vue";
 
 const filters = ref([
@@ -8,13 +8,19 @@ const filters = ref([
 ])
 
 const selectedFilter = ref('az')
+const employees = ref<{ names: string; lastNames: string; hiringDate: string }[]>([])
 
-const employees = ref([
-  { names: 'Carlos', last_names: 'Ramírez', hiring_date: '2015-03-01' },
-  { names: 'Luisa', last_names: 'Fernández', hiring_date: '2018-07-15' },
-  { names: 'Miguel', last_names: 'Santos', hiring_date: '2020-11-20' },
-  { names: 'Ana', last_names: 'Morales', hiring_date: '2012-01-10' }
-])
+const fetchEmployees = async () => {
+  try {
+    const response = await fetch('http://localhost:8080/api/employees/')
+    if (!response.ok) throw new Error('Failed to fetch clients')
+    const data = await response.json()
+    employees.value = data
+    sortEmployees()
+  } catch (error) {
+    console.error('Error fetching clients:', error)
+  }
+}
 
 const sortEmployees = () => {
   if (selectedFilter.value === 'az') {
@@ -24,6 +30,10 @@ const sortEmployees = () => {
   }
 }
 
+const formatDate = (isoString: string): string => {
+  return new Date(isoString).toLocaleDateString('es-ES')
+}
+
 const generatePDF = () => {
   alert("Generando PDF...");
 }
@@ -31,6 +41,10 @@ const generatePDF = () => {
 const generateCSV = () => {
   alert("Generando CSV...");
 }
+
+onMounted(() => {
+	fetchEmployees()
+})
 </script>
 
 <template>
@@ -68,10 +82,10 @@ const generateCSV = () => {
         </tr>
       </thead>
       <tbody>
-        <tr v-for="employee in employees" :key="employee.names + employee.last_names">
+        <tr v-for="employee in employees" :key="employee.names + employee.lastNames">
           <td>{{ employee.names }}</td>
-          <td>{{ employee.last_names }}</td>
-          <td>{{ employee.hiring_date }}</td>
+          <td>{{ employee.lastNames }}</td>
+          <td>{{ formatDate(employee.hiringDate) }}</td>
         </tr>
       </tbody>
     </table>

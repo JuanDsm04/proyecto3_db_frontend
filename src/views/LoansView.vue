@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import Navbar from "@/components/Navbar.vue";
 
 const filters = ref([
@@ -8,20 +8,30 @@ const filters = ref([
 ])
 
 const selectedFilter = ref('az')
+const loans = ref<{ clientId: number; employeeId: number; editionId: number; loanDate: string; returnDate: string }[]>([])
 
-const loans = ref([
-  { id_client: 1, id_employee: 101, id_edition: 501, loan_date: '2023-01-10', return_date: '2023-01-20' },
-  { id_client: 2, id_employee: 102, id_edition: 502, loan_date: '2023-02-15', return_date: '2023-02-25' },
-  { id_client: 3, id_employee: 103, id_edition: 503, loan_date: '2023-03-01', return_date: '2023-03-11' },
-  { id_client: 4, id_employee: 104, id_edition: 504, loan_date: '2023-04-05', return_date: '2023-04-15' }
-])
+const fetchLoans = async () => {
+  try {
+    const response = await fetch('http://localhost:8080/api/loans/')
+    if (!response.ok) throw new Error('Failed to fetch loans')
+    const data = await response.json()
+    loans.value = data
+    sortLoans()
+  } catch (error) {
+    console.error('Error fetching loans:', error)
+  }
+}
 
 const sortLoans = () => {
   if (selectedFilter.value === 'az') {
-    loans.value.sort((a, b) => a.id_client - b.id_client)
+    loans.value.sort((a, b) => a.clientId - b.clientId)
   } else if (selectedFilter.value === 'za') {
-    loans.value.sort((a, b) => b.id_client - a.id_client)
+    loans.value.sort((a, b) => b.clientId - a.clientId)
   }
+}
+
+const formatDate = (isoString: string): string => {
+  return new Date(isoString).toLocaleDateString('es-ES')
 }
 
 const generatePDF = () => {
@@ -31,6 +41,10 @@ const generatePDF = () => {
 const generateCSV = () => {
   alert("Generando CSV...");
 }
+
+onMounted(() => {
+	fetchLoans()
+})
 </script>
 
 <template>
@@ -70,12 +84,12 @@ const generateCSV = () => {
         </tr>
       </thead>
       <tbody>
-        <tr v-for="loan in loans" :key="loan.id_client + '-' + loan.id_edition">
-          <td>{{ loan.id_client }}</td>
-          <td>{{ loan.id_employee }}</td>
-          <td>{{ loan.id_edition }}</td>
-          <td>{{ loan.loan_date }}</td>
-          <td>{{ loan.return_date }}</td>
+        <tr v-for="loan in loans" :key="loan.clientId + '-' + loan.editionId">
+          <td>{{ loan.clientId }}</td>
+          <td>{{ loan.employeeId }}</td>
+          <td>{{ loan.editionId }}</td>
+          <td>{{ formatDate(loan.loanDate) }}</td>
+          <td>{{ formatDate(loan.returnDate) }}</td>
         </tr>
       </tbody>
     </table>
