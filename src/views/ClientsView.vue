@@ -1,13 +1,17 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import Navbar from "@/components/Navbar.vue";
+import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 const filters = ref([
-  { label: 'A-Z', value: 'az' },
-  { label: 'Z-A', value: 'za' }
+  { label: 'A-Z (Nombre)', value: 'name_az' },
+  { label: 'Z-A (Nombre)', value: 'name_za' },
+  { label: 'A-Z (Apellido)', value: 'lastName_az' },
+  { label: 'Z-A (Apellido)', value: 'lastName_za' }
 ])
 
-const selectedFilter = ref('az')
+const selectedFilter = ref('-')
 const clients = ref<{ names: string; lastNames: string; address: string; phone: string; email: string }[]>([])
 
 const fetchClients = async () => {
@@ -23,19 +27,71 @@ const fetchClients = async () => {
 }
 
 const sortClients = () => {
-  if (selectedFilter.value === 'az') {
-    clients.value.sort((a, b) => a.names.localeCompare(b.names))
-  } else if (selectedFilter.value === 'za') {
-    clients.value.sort((a, b) => b.names.localeCompare(a.names))
+  switch (selectedFilter.value) {
+    case 'name_az':
+      clients.value.sort((a, b) => a.names.localeCompare(b.names))
+      break
+    case 'name_za':
+      clients.value.sort((a, b) => b.names.localeCompare(a.names))
+      break
+    case 'lastName_az':
+      clients.value.sort((a, b) => a.lastNames.localeCompare(b.lastNames))
+      break
+    case 'lastName_za':
+      clients.value.sort((a, b) => b.lastNames.localeCompare(a.lastNames))
+      break
+    default:
+      break
   }
 }
 
 const generatePDF = () => {
-  alert("Generando PDF...");
+  alert("Generando PDF...")
+
+  const doc = new jsPDF()
+
+  doc.text('Lista de Clientes', 14, 20)
+
+  autoTable(doc, {
+    startY: 30,
+    head: [['Nombres', 'Apellidos', 'Dirección', 'Teléfono', 'Email']],
+    body: clients.value.map(client => [
+      client.names,
+      client.lastNames,
+      client.address,
+      client.phone,
+      client.email
+    ]),
+    styles: { fontSize: 8 },
+    headStyles: { fillColor: [41, 128, 185] },
+  })
+
+  doc.save('clients.pdf')
 }
 
-const generateCSV = () => {
-  alert("Generando CSV...");
+const generateCSV = async () => {
+  alert("Generando CSV...")
+
+  try {
+    const response = await fetch('http://localhost:8080/api/clients/csv', {
+      method: 'GET',
+    })
+
+    if (!response.ok) throw new Error('Error al generar CSV')
+
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', 'clients.csv')
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(url)
+  } catch (error) {
+    console.error('Error generando CSV:', error)
+    alert('Hubo un error al generar el CSV.')
+  }
 }
 
 onMounted(() => {

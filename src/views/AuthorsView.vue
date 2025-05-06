@@ -1,13 +1,19 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import Navbar from "@/components/Navbar.vue"
+import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 const filters = ref([
-  { label: 'A-Z', value: 'az' },
-  { label: 'Z-A', value: 'za' }
+  { label: 'A-Z (Nombres)', value: 'name_az' },
+  { label: 'Z-A (Nombres)', value: 'name_za' },
+  { label: 'A-Z (Apellidos)', value: 'lastName_az' },
+  { label: 'Z-A (Apellidos)', value: 'lastName_za' },
+  { label: 'A-Z (Nacionalidad)', value: 'nationality_az' },
+  { label: 'Z-A (Nacionalidad)', value: 'nationality_za' }
 ])
 
-const selectedFilter = ref('az')
+const selectedFilter = ref('-')
 const authors = ref<{ names: string; lastNames: string; nationality: string }[]>([])
 
 const fetchAuthors = async () => {
@@ -23,19 +29,73 @@ const fetchAuthors = async () => {
 }
 
 const sortAuthors = () => {
-  if (selectedFilter.value === 'az') {
-    authors.value.sort((a, b) => a.names.localeCompare(b.names))
-  } else if (selectedFilter.value === 'za') {
-    authors.value.sort((a, b) => b.names.localeCompare(a.names))
+  switch (selectedFilter.value) {
+    case 'name_az':
+      authors.value.sort((a, b) => a.names.localeCompare(b.names))
+      break
+    case 'name_za':
+      authors.value.sort((a, b) => b.names.localeCompare(a.names))
+      break
+    case 'lastName_az':
+      authors.value.sort((a, b) => a.lastNames.localeCompare(b.lastNames))
+      break
+    case 'lastName_za':
+      authors.value.sort((a, b) => b.lastNames.localeCompare(a.lastNames))
+      break
+    case 'nationality_az':
+      authors.value.sort((a, b) => a.nationality.localeCompare(b.nationality))
+      break
+    case 'nationality_za':
+      authors.value.sort((a, b) => b.nationality.localeCompare(a.nationality))
+      break
+    default:
+      break
   }
 }
 
 const generatePDF = () => {
   alert("Generando PDF...")
+
+  const doc = new jsPDF()
+
+  doc.text('Lista de Autores', 14, 20)
+
+  autoTable(doc, {
+    startY: 30,
+    head: [['Nombres', 'Apellidos', 'Nacionalidad']],
+    body: authors.value.map(author => [
+      author.names,
+      author.lastNames,
+      author.nationality
+    ]),
+  })
+
+  doc.save('authors.pdf')
 }
 
-const generateCSV = () => {
+const generateCSV = async () => {
   alert("Generando CSV...")
+
+  try {
+    const response = await fetch('http://localhost:8080/api/authors/csv', {
+      method: 'GET',
+    })
+
+    if (!response.ok) throw new Error('Error al generar CSV')
+
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', 'autores.csv')
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(url)
+  } catch (error) {
+    console.error('Error generando CSV:', error)
+    alert('Hubo un error al generar el CSV.')
+  }
 }
 
 onMounted(() => {

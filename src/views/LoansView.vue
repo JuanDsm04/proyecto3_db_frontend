@@ -1,13 +1,19 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import Navbar from "@/components/Navbar.vue";
+import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 const filters = ref([
-  { label: 'A-Z', value: 'az' },
-  { label: 'Z-A', value: 'za' }
+  { label: 'Más reciente préstamo', value: 'recent_loan' },
+  { label: 'Más antiguo préstamo', value: 'oldest_loan' },
+  { label: 'Más reciente devolución', value: 'recent_return' },
+  { label: 'Más antigua devolución', value: 'oldest_return' },
+  { label: 'Por ID Cliente (asc)', value: 'clientId_asc' },
+  { label: 'Por ID Cliente (desc)', value: 'clientId_desc' }
 ])
 
-const selectedFilter = ref('az')
+const selectedFilter = ref('-');
 const loans = ref<{ clientId: number; employeeId: number; editionId: number; loanDate: string; returnDate: string }[]>([])
 
 const fetchLoans = async () => {
@@ -23,10 +29,27 @@ const fetchLoans = async () => {
 }
 
 const sortLoans = () => {
-  if (selectedFilter.value === 'az') {
-    loans.value.sort((a, b) => a.clientId - b.clientId)
-  } else if (selectedFilter.value === 'za') {
-    loans.value.sort((a, b) => b.clientId - a.clientId)
+  switch (selectedFilter.value) {
+    case 'recent_loan':
+      loans.value.sort((a, b) => new Date(b.loanDate).getTime() - new Date(a.loanDate).getTime())
+      break
+    case 'oldest_loan':
+      loans.value.sort((a, b) => new Date(a.loanDate).getTime() - new Date(b.loanDate).getTime())
+      break
+    case 'recent_return':
+      loans.value.sort((a, b) => new Date(b.returnDate).getTime() - new Date(a.returnDate).getTime())
+      break
+    case 'oldest_return':
+      loans.value.sort((a, b) => new Date(a.returnDate).getTime() - new Date(b.returnDate).getTime())
+      break
+    case 'clientId_asc':
+      loans.value.sort((a, b) => a.clientId - b.clientId)
+      break
+    case 'clientId_desc':
+      loans.value.sort((a, b) => b.clientId - a.clientId)
+      break
+    default:
+      break
   }
 }
 
@@ -36,10 +59,51 @@ const formatDate = (isoString: string): string => {
 
 const generatePDF = () => {
   alert("Generando PDF...");
+
+  const doc = new jsPDF();
+
+  doc.text('Lista de Préstamos', 14, 20);
+
+  autoTable(doc, {
+    startY: 30,
+    head: [['ID Cliente', 'ID Empleado', 'ID Edición', 'Fecha de Préstamo', 'Fecha de Devolución']],
+    body: loans.value.map(loan => [
+      loan.clientId.toString(),
+      loan.employeeId.toString(),
+      loan.editionId.toString(),
+      formatDate(loan.loanDate),
+      formatDate(loan.returnDate)
+    ]),
+    styles: { fontSize: 9 },
+    headStyles: { fillColor: [0, 123, 255] },
+  });
+
+  doc.save('loans.pdf');
 }
 
-const generateCSV = () => {
-  alert("Generando CSV...");
+const generateCSV = async () => {
+  alert("Generando CSV...")
+
+  try {
+    const response = await fetch('http://localhost:8080/api/loans/csv', {
+      method: 'GET',
+    })
+
+    if (!response.ok) throw new Error('Error al generar CSV')
+
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', 'loans.csv')
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(url)
+  } catch (error) {
+    console.error('Error generando CSV:', error)
+    alert('Hubo un error al generar el CSV.')
+  }
 }
 
 onMounted(() => {

@@ -1,7 +1,7 @@
 services:
   backend:
     build:
-      context: ../db-project2/src
+      context: ../db-project3/src
       dockerfile: Dockerfile
     container_name: editorial-backend
     ports:
@@ -19,7 +19,7 @@ services:
       - "5432:5432"
     restart: always
     volumes:
-      - ../db-project2/db:/docker-entrypoint-initdb.d
+      - ../db-project3/db:/docker-entrypoint-initdb.d
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres

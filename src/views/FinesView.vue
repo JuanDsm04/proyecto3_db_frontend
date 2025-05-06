@@ -1,13 +1,17 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import Navbar from "@/components/Navbar.vue";
+import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 const filters = ref([
-  { label: 'A-Z', value: 'az' },
-  { label: 'Z-A', value: 'za' }
+  { label: 'Mayor monto', value: 'amount_desc' },
+  { label: 'Menor monto', value: 'amount_asc' },
+  { label: 'Fecha de pago más reciente', value: 'recent_payment' },
+  { label: 'Fecha de pago más antigua', value: 'oldest_payment' }
 ])
 
-const selectedFilter = ref('az')
+const selectedFilter = ref('-')
 const fines = ref<{ loanId: number; amount: number; reason: string; paymentDate: string }[]>([])
 
 const fetchFines = async () => {
@@ -23,10 +27,14 @@ const fetchFines = async () => {
 }
 
 const sortFines = () => {
-  if (selectedFilter.value === 'az') {
-    fines.value.sort((a, b) => a.loanId - b.loanId)
-  } else if (selectedFilter.value === 'za') {
-    fines.value.sort((a, b) => b.loanId - a.loanId)
+  if (selectedFilter.value === 'amount_desc') {
+    fines.value.sort((a, b) => b.amount - a.amount)
+  } else if (selectedFilter.value === 'amount_asc') {
+    fines.value.sort((a, b) => a.amount - b.amount)
+  } else if (selectedFilter.value === 'recent_payment') {
+    fines.value.sort((a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime())
+  } else if (selectedFilter.value === 'oldest_payment') {
+    fines.value.sort((a, b) => new Date(a.paymentDate).getTime() - new Date(b.paymentDate).getTime())
   }
 }
 
@@ -36,10 +44,50 @@ const formatDate = (isoString: string): string => {
 
 const generatePDF = () => {
   alert("Generando PDF...");
+
+  const doc = new jsPDF();
+
+  doc.text('Lista de Multas', 14, 20);
+
+  autoTable(doc, {
+    startY: 30,
+    head: [['ID Préstamo', 'Monto', 'Razón', 'Fecha de Pago']],
+    body: fines.value.map(fine => [
+      fine.loanId.toString(),
+      `Q ${fine.amount.toFixed(2)}`,
+      fine.reason,
+      formatDate(fine.paymentDate)
+    ]),
+    styles: { fontSize: 9 },
+    headStyles: { fillColor: [231, 76, 60] },
+  });
+
+  doc.save('fines.pdf');
 }
 
-const generateCSV = () => {
-  alert("Generando CSV...");
+const generateCSV = async () => {
+  alert("Generando CSV...")
+
+  try {
+    const response = await fetch('http://localhost:8080/api/fines/csv', {
+      method: 'GET',
+    })
+
+    if (!response.ok) throw new Error('Error al generar CSV')
+
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', 'fines.csv')
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(url)
+  } catch (error) {
+    console.error('Error generando CSV:', error)
+    alert('Hubo un error al generar el CSV.')
+  }
 }
 
 onMounted(() => {
