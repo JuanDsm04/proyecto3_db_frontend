@@ -1,33 +1,23 @@
-# proyecto3_db_frontend
+# Proyecto 3
 
-This template should help get you started developing with Vue 3 in Vite.
+This repository contains the frontend for an application that connects to a database, shows information in real time and allows for exporting the data to PDF and CSV.
 
-## Recommended IDE Setup
+## Getting started
+The project includes a `docker-compose.yml` file to run the application and its database with Docker.
 
-[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+### Prerequisites
+- Git
+- Docker Compose
 
-## Type Support for `.vue` Imports in TS
-
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
-
+### Installation
+1. **Clone** the frontend and backend repositories inside the same parent folder.
 ```sh
-npm install
+git clone https://github.com/vicperezch/db-project3.git
+git clone https://github.com/JuanDsm04/proyecto3_db_frontend.git
+cd proyecto3_db_frontend
 ```
 
-### Compile and Hot-Reload for Development
-
-```sh
-npm run dev
+2. **Run** the containers.
 ```
-
-### Type-Check, Compile and Minify for Production
-
-```sh
-npm run build
+docker-compose up --build
 ```
